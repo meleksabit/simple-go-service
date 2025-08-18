@@ -1,10 +1,16 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'golang:1.25'
+            // Mount docker socket so container can run docker commands
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
-        REGISTRY = 'docker.io/angel3'
-        IMAGE    = 'simple-go-service'
-        TAG      = "dev-${GIT_COMMIT[0..6]}"
+        REGISTRY    = 'docker.io/angel3'
+        IMAGE       = 'simple-go-service'
+        TAG         = "dev-${GIT_COMMIT[0..6]}"
         SONAR_TOKEN = credentials('sonar-token')
     }
 
@@ -62,8 +68,8 @@ pipeline {
         stage('Build & Push') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
-                                                  usernameVariable: 'DOCKER_USER',
-                                                  passwordVariable: 'DOCKER_PASSWORD')]) {
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASSWORD')]) {
                     sh '''
                       docker build -t $REGISTRY/$IMAGE:$TAG .
                       echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
