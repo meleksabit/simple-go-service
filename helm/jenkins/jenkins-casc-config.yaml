@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-casc-config
+  namespace: cicd
+  labels:
+    jenkins-jenkins-config: "true"
+data:
+  basic-security.yaml: |
+    jenkins:
+      securityRealm:
+        local:
+          allowsSignup: false
+          users:
+            - id: "admin"
+              # password is managed via Helm values / secret
+      authorizationStrategy:
+        loggedInUsersCanDoAnything:
+          allowAnonymousRead: false
+
+      credentials:
+        system:
+          domainCredentials:
+            - credentials:
+                - usernamePassword:
+                    scope: GLOBAL
+                    id: "docker-hub"
+                    username: "${DOCKERHUB_USER}"
+                    password: "${DOCKERHUB_PASS}"
+                    description: "Docker Hub credentials"
+                - string:
+                    scope: GLOBAL
+                    id: "sonar-token"
+                    secret: "${SONAR_TOKEN}"
+                    description: "SonarCloud token"
+                - string:
+                    scope: GLOBAL
+                    id: "github-webhook-secret"
+                    secret: "${GITHUB_WEBHOOK_SECRET}"
+                    description: "GitHub webhook secret"
+
+    unclassified:
+      githubpluginconfig:
+        hookSecretConfigs:
+          - credentialsId: "github-webhook-secret"

@@ -1,0 +1,39 @@
+jenkins:
+  systemMessage: "Managed by JCasC (immutable)"
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  location:
+    url: "${JENKINS_URL:-http://jenkins.cicd.svc.cluster.local:8080/}"
+  githubpluginconfig:
+    hookSecretConfigs:
+      - credentialsId: "github-webhook-secret"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "docker-hub"
+              username: "${DOCKERHUB_USER}"
+              password: "${DOCKERHUB_PASS}"
+              description: "Docker Hub credentials"
+          - string:
+              scope: GLOBAL
+              id: "sonar-token"
+              secret: "${SONAR_TOKEN}"
+              description: "SonarCloud token"
+          - string:
+              scope: GLOBAL
+              id: "github-webhook-secret"
+              secret: "${GITHUB_WEBHOOK_SECRET}"
+              description: "GitHub webhook secret"
