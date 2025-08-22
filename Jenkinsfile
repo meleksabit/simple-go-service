@@ -50,7 +50,7 @@ spec:
   volumes:
     - name: docker-config
       secret:
-        secretName: regcred   # DockerHub creds secret mounted here
+        secretName: regcred
         items:
           - key: .dockerconfigjson
             path: config.json
@@ -62,9 +62,9 @@ spec:
 
   options {
     timestamps()
+    ansiColor('xterm')
     buildDiscarder(logRotator(numToKeepStr: '20'))
     skipDefaultCheckout(true)
-    ansiColor('xterm')
   }
 
   environment {
@@ -76,7 +76,6 @@ spec:
   }
 
   stages {
-
     stage('Checkout') {
       steps {
         checkout scm
@@ -102,15 +101,12 @@ spec:
           sh '''
             go install github.com/onsi/ginkgo/v2/ginkgo@latest
             go install github.com/jstemmer/go-junit-report@latest || true
-
             mkdir -p reports
             if ls **/*_test.go >/dev/null 2>&1; then
               ginkgo -r -p -cover -output-dir=reports -junit-report reports/junit.xml \
                      -coverprofile=coverage-ginkgo.out || true
             fi
-
             go test ./... -coverprofile=coverage-unit.out -v 2>&1 | go-junit-report > reports/junit-go.xml || true
-
             echo "mode: set" > coverage.out
             if [ -f coverage-unit.out ]; then tail -n +2 coverage-unit.out >> coverage.out || true; fi
             if [ -f coverage-ginkgo.out ]; then tail -n +2 coverage-ginkgo.out >> coverage.out || true; fi
@@ -153,7 +149,6 @@ spec:
 
     stage('Build & Push (Kaniko)') {
       steps {
-        // DockerHub credentials from Jenkins
         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           container('kaniko') {
             sh '''
@@ -181,7 +176,6 @@ spec:
 
     stage('SonarCloud') {
       steps {
-        // SonarCloud token from Jenkins
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
           container('sonar') {
             sh '''
@@ -198,7 +192,9 @@ spec:
     }
 
     stage('Deploy (Helm rolling update)') {
-      when { not { changeRequest() && env.BRANCH_NAME != 'main' } }
+      when {
+        expression { return !(changeRequest() && env.BRANCH_NAME != 'main') }
+      }
       steps {
         container('helm') {
           sh '''
