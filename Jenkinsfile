@@ -61,8 +61,6 @@ spec:
   }
 
   options {
-    timestamps()
-    ansiColor('xterm')
     buildDiscarder(logRotator(numToKeepStr: '20'))
     skipDefaultCheckout(true)
   }
