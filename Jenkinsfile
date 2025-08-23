@@ -109,11 +109,11 @@ spec:
       // --- Install dependencies ---
       steps {
         container('go') {
-        sh '''
-          apk add --no-cache git bash curl make jq go
-          go version
-          go mod tidy
-        '''
+          sh '''
+            apk add --no-cache git bash curl make jq go
+            go version
+            go mod tidy
+          '''
         }
       }
     }
@@ -122,19 +122,19 @@ spec:
       // --- Run tests and generate coverage reports ---
       steps {
         container('go') {
-        sh '''
-          go install github.com/onsi/ginkgo/v2/ginkgo@latest
-          go install github.com/jstemmer/go-junit-report@latest || true
-          mkdir -p reports
-          if ls **/*_test.go >/dev/null 2>&1; then
-            ginkgo -r -p -cover -output-dir=reports -junit-report reports/junit.xml \
-                   -coverprofile=coverage-ginkgo.out || true
-          fi
-          go test ./... -coverprofile=coverage-unit.out -v 2>&1 | go-junit-report > reports/junit-go.xml || true
-          echo "mode: set" > coverage.out
-          if [ -f coverage-unit.out ]; then tail -n +2 coverage-unit.out >> coverage.out || true; fi
-          if [ -f coverage-ginkgo.out ]; then tail -n +2 coverage-ginkgo.out >> coverage.out || true; fi
-        '''
+          sh '''
+            go install github.com/onsi/ginkgo/v2/ginkgo@latest
+            go install github.com/jstemmer/go-junit-report@latest || true
+            mkdir -p reports
+            if ls **/*_test.go >/dev/null 2>&1; then
+              ginkgo -r -p -cover -output-dir=reports -junit-report reports/junit.xml \
+                    -coverprofile=coverage-ginkgo.out || true
+            fi
+            go test ./... -coverprofile=coverage-unit.out -v 2>&1 | go-junit-report > reports/junit-go.xml || true
+            echo "mode: set" > coverage.out
+            if [ -f coverage-unit.out ]; then tail -n +2 coverage-unit.out >> coverage.out || true; fi
+            if [ -f coverage-ginkgo.out ]; then tail -n +2 coverage-ginkgo.out >> coverage.out || true; fi
+          '''
         }
       }
       post {
@@ -149,10 +149,10 @@ spec:
       // --- Run static code analysis ---
       steps {
         container('go') {
-        sh '''
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -fmt=junit-xml -out reports/gosec.xml ./... || true
-        '''
+          sh '''
+            go install github.com/securego/gosec/v2/cmd/gosec@latest
+            gosec -fmt=junit-xml -out reports/gosec.xml ./... || true
+          '''
         }
       }
       post {
@@ -166,9 +166,9 @@ spec:
       // --- Scan the filesystem for vulnerabilities ---
       steps {
         container('trivy') {
-        sh '''
-          trivy fs --no-progress --severity HIGH,CRITICAL --exit-code 0 -f table .
-        '''
+          sh '''
+            trivy fs --no-progress --severity HIGH,CRITICAL --exit-code 0 -f table .
+          '''
         }
       }
     }
@@ -199,9 +199,9 @@ spec:
       }
       steps {
         container('trivy') {
-        sh '''
-          trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 ${REGISTRY}/${IMAGE}:${TAG}
-        '''
+          sh '''
+            trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 ${REGISTRY}/${IMAGE}:${TAG}
+          '''
         }
       }
     }
@@ -213,14 +213,16 @@ spec:
       }
       steps {
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-          sh '''
-            sonar-scanner \
-              -Dsonar.projectKey=meleksabit_simple-go-service \
-              -Dsonar.organization=meleksabit \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.login=$SONAR_TOKEN \
-              -Dsonar.go.coverage.reportPaths=coverage.out
-          '''
+          container('sonar') {
+            sh '''
+              sonar-scanner \
+                -Dsonar.projectKey=meleksabit_simple-go-service \
+                -Dsonar.organization=meleksabit \
+                -Dsonar.host.url=https://sonarcloud.io \
+                -Dsonar.login=$SONAR_TOKEN \
+                -Dsonar.go.coverage.reportPaths=coverage.out
+            '''
+          }
         }
       }
     }
@@ -231,16 +233,18 @@ spec:
         expression { return !(changeRequest() && env.BRANCH_NAME != 'main') }
       }
       steps {
-        sh '''
-          helm version && kubectl version --client
-          kubectl get ns ${APP_NS} || kubectl create ns ${APP_NS}
-          helm upgrade --install simple-go-service ${CHART} \
-            --namespace ${APP_NS} \
-            --set image.repository=${REGISTRY}/${IMAGE} \
-            --set image.tag=${TAG} \
-            --wait --timeout 5m
-          kubectl -n ${APP_NS} rollout status deploy/simple-go-service --timeout=120s
-        '''
+        container('helm') {
+          sh '''
+            helm version && kubectl version --client
+            kubectl get ns ${APP_NS} || kubectl create ns ${APP_NS}
+            helm upgrade --install simple-go-service ${CHART} \
+              --namespace ${APP_NS} \
+              --set image.repository=${REGISTRY}/${IMAGE} \
+              --set image.tag=${TAG} \
+              --wait --timeout 5m
+            kubectl -n ${APP_NS} rollout status deploy/simple-go-service --timeout=120s
+          '''
+        }
       }
     }
 
