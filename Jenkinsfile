@@ -62,8 +62,12 @@ spec:
 
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
-      imagePullPolicy: IfNotPresent
-      args: ["--version"]  # keeps the container alive for Jenkins; pipeline will run custom commands
+      command: ['sh', '-c', 'cat']
+      tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+          readOnly: true
 
     - name: helm
       image: dtzar/helm-kubectl:latest
