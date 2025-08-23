@@ -9,13 +9,86 @@ pipeline {
   //   }
   // }
 
-  agent any  // <<=== Single-node agent (e.g. Jenkins master or worker)
+  // agent any  // <<=== Single container agent (default Jenkins agent)
+
+  agent {
+    kubernetes {
+      cloud 'kubernetes'
+      namespace 'cicd'
+      defaultContainer 'go'
+      yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: jx-build
+spec:
+  serviceAccountName: jenkins
+  # Pull once per node then reuse
+  imagePullSecrets:
+    - name: regcred
+  containers:
+    - name: go
+      image: golang:1.22-alpine
+      imagePullPolicy: IfNotPresent
+      command: ['sh', '-c', 'cat']
+      tty: true
+      # Only needed if you install extra Alpine packages at runtime (we don't here)
+      securityContext:
+        runAsUser: 0
+      env:
+        - name: CGO_ENABLED
+          value: "0"
+      volumeMounts:
+        - name: trivy-cache
+          mountPath: /root/.cache/trivy
+
+    - name: sonar
+      image: sonarsource/sonar-scanner-cli:latest
+      imagePullPolicy: IfNotPresent
+      command: ['sh', '-c', 'cat']
+      tty: true
+
+    - name: trivy
+      image: aquasec/trivy:latest
+      imagePullPolicy: IfNotPresent
+      command: ['sh', '-c', 'cat']
+      tty: true
+      securityContext:
+        runAsUser: 0
+      volumeMounts:
+        - name: trivy-cache
+          mountPath: /root/.cache/trivy
+
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      imagePullPolicy: IfNotPresent
+      args: ["--version"]  # keeps the container alive for Jenkins; pipeline will run custom commands
+
+    - name: helm
+      image: dtzar/helm-kubectl:latest
+      imagePullPolicy: IfNotPresent
+      command: ['sh', '-c', 'cat']
+      tty: true
+
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+    - name: trivy-cache
+      emptyDir: {}
+"""
+    }
+  }
 
   options {
     buildDiscarder(logRotator(numToKeepStr: '20')) // keep last 20 builds
     skipDefaultCheckout(true)
     timestamps() // add timestamps to console output
-    ansicolor('xterm') // use ANSI colors in console output
+    ansiColor('xterm') // use ANSI colors in console output
   }
 
   environment {
@@ -29,18 +102,18 @@ pipeline {
 
   stages {
     // --- Checkout source code ---
-    stage('Checkout') {
-      steps {
-        checkout scm
-        sh 'ls -la'
-      }
-    }
+    // stage('Checkout') {
+    //   steps {
+    //     checkout scm
+    //     sh 'ls -la'
+    //   }
+    // }
 
     stage('Deps') {
       // --- Install dependencies ---
       steps {
         sh '''
-          apk add --no-cache git bash curl make jq go
+          apt-get update && apt-get install -y git bash curl make jq golang
           go version
           go mod tidy
         '''
@@ -170,7 +243,10 @@ pipeline {
         }
         script {
           // Perform a health check on the service
-          def serviceUrl = "http://localhost:8080/v1/data"
+          // --- Use ClusterIP service URL (inside cluster); NodePort only if external ---
+          def serviceUrl = "http://simple-go-service.${APP_NS}.svc.cluster.local:8080/v1/data"
+          echo "Performing service health check on ${serviceUrl}..."
+
           def response = sh(script: "curl -s -o /dev/null -w '%{http_code}' ${serviceUrl}", returnStdout: true).trim()
           echo "Health check HTTP response: ${response}"
 
