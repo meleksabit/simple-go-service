@@ -174,17 +174,29 @@ spec:
     }
 
     stage('Build & Push (BuildKit)') {
+      // --- Build the Docker image using BuildKit and push to registry ---
       steps {
-        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          container('buildkit') {
-            sh '''
-              echo "🚀 Starting BuildKit build..."
-              echo "$DOCKER_PASS" | buildctl build \
-                --frontend=dockerfile.v0 \
-                --local context=. \
-                --local dockerfile=. \
-                --output type=image,name=${REGISTRY}/${IMAGE}:${TAG},push=true
-            '''
+        container('buildkit') {
+          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            script {
+              def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
+              def REGISTRY = "docker.io"
+              def IMAGE = "angel3/simple-go-service"
+
+              sh """
+                echo "🚀 Starting BuildKit build..."
+                echo "🔖 Tagging image as ${REGISTRY}/${IMAGE}:${TAG}"
+
+                buildctl build \
+                  --frontend=dockerfile.v0 \
+                  --local context=. \
+                  --local dockerfile=. \
+                  --output type=image,"name=${REGISTRY}/${IMAGE}:${TAG},push=true" \
+                  --export-cache type=inline \
+                  --import-cache type=registry,ref=${REGISTRY}/${IMAGE}:cache \
+                  --opt build-arg:BUILDKIT_INLINE_CRED_HELPER="docker"
+              """
+            }
           }
         }
       }
