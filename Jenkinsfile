@@ -108,17 +108,20 @@ spec:
     stage('Deps') {
       // --- Install dependencies ---
       steps {
+        container('go') {
         sh '''
           apk add --no-cache git bash curl make jq go
           go version
           go mod tidy
         '''
+        }
       }
     }
 
     stage('Test & Coverage (Ginkgo)') {
       // --- Run tests and generate coverage reports ---
       steps {
+        container('go') {
         sh '''
           go install github.com/onsi/ginkgo/v2/ginkgo@latest
           go install github.com/jstemmer/go-junit-report@latest || true
@@ -132,6 +135,7 @@ spec:
           if [ -f coverage-unit.out ]; then tail -n +2 coverage-unit.out >> coverage.out || true; fi
           if [ -f coverage-ginkgo.out ]; then tail -n +2 coverage-ginkgo.out >> coverage.out || true; fi
         '''
+        }
       }
       post {
         always {
@@ -144,10 +148,12 @@ spec:
     stage('Static Analysis (gosec)') {
       // --- Run static code analysis ---
       steps {
+        container('go') {
         sh '''
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           gosec -fmt=junit-xml -out reports/gosec.xml ./... || true
         '''
+        }
       }
       post {
         always {
@@ -159,9 +165,11 @@ spec:
     stage('Filesystem Scan (Trivy)') {
       // --- Scan the filesystem for vulnerabilities ---
       steps {
+        container('trivy') {
         sh '''
           trivy fs --no-progress --severity HIGH,CRITICAL --exit-code 0 -f table .
         '''
+        }
       }
     }
 
