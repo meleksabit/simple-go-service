@@ -117,7 +117,7 @@ spec:
       // --- Install dependencies ---
       steps {
         sh '''
-          apt-get update && apt-get install -y git bash curl make jq golang
+          apk add --no-cache git bash curl make jq go
           go version
           go mod tidy
         '''
