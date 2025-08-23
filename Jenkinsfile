@@ -177,7 +177,7 @@ spec:
       // --- Build the Docker image using BuildKit and push to registry ---
       steps {
         container('buildkit') {
-          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
             script {
               def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
               def REGISTRY = "docker.io"
