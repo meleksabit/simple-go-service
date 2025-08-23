@@ -110,7 +110,7 @@ spec:
       steps {
         container('go') {
           sh '''
-            apk add --no-cache git bash curl make jq go
+            apk add --no-cache git bash curl make jq
             go version
             go mod tidy
           '''
@@ -179,9 +179,7 @@ spec:
           container('buildkit') {
             sh '''
               echo "🚀 Starting BuildKit build..."
-              echo "$DOCKER_PASS" | buildctl login docker.io -u "$DOCKER_USER" --password-stdin
-              
-              buildctl build \
+              echo "$DOCKER_PASS" | buildctl build \
                 --frontend=dockerfile.v0 \
                 --local context=. \
                 --local dockerfile=. \
