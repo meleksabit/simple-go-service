@@ -63,7 +63,10 @@ spec:
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
       imagePullPolicy: IfNotPresent
-      command: ['sh', '-c', 'cat']
+      command:
+        - /kaniko/executor
+      args:
+        - --help
       tty: true
 
     - name: helm
