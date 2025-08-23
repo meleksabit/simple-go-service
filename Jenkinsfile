@@ -64,9 +64,10 @@ spec:
       image: gcr.io/kaniko-project/executor:latest
       imagePullPolicy: IfNotPresent
       command:
-        - /kaniko/executor
+        - /busybox/sh
       args:
-        - --help
+        - -c
+        - sleep 9999999  # <-- keep container alive, Jenkins will run executor commands inside
       tty: true
 
     - name: helm
@@ -167,15 +168,20 @@ spec:
       }
     }
 
-    stage('Build & Push (Docker)') {
+    stage('Build & Push (Kaniko)') {
       // --- Build Docker image and push to registry ---
       steps {
         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh '''
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-            docker build -t ${REGISTRY}/${IMAGE}:${TAG} .
-            docker push ${REGISTRY}/${IMAGE}:${TAG}
-          '''
+          container('kaniko') {
+            sh '''
+              echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_USER\",\"password\":\"$DOCKER_PASS\"}}}" > /kaniko/.docker/config.json
+              /kaniko/executor \
+                --context=$WORKSPACE \
+                --dockerfile=$WORKSPACE/Dockerfile \
+                --destination=${REGISTRY}/${IMAGE}:${TAG} \
+                --cache=true --verbosity=info
+            '''
+          }
         }
       }
     }
