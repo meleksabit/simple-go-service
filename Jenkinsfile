@@ -26,7 +26,7 @@ spec:
   serviceAccountName: jenkins
   # Pull once per node then reuse
   imagePullSecrets:
-    - name: regcred
+    - name: jenkins-secrets
   containers:
     - name: go
       image: golang:1.25-alpine
@@ -62,6 +62,7 @@ spec:
 
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
+      imagePullPolicy: IfNotPresent
       command: ['sh', '-c', 'cat']
       tty: true
       volumeMounts:
@@ -78,7 +79,7 @@ spec:
   volumes:
     - name: docker-config
       secret:
-        secretName: regcred
+        secretName: jenkins-secrets
         items:
           - key: .dockerconfigjson
             path: config.json
