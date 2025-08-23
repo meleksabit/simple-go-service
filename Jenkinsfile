@@ -98,12 +98,12 @@ spec:
 
   stages {
     // --- Checkout source code ---
-    // stage('Checkout') {
-    //   steps {
-    //     checkout scm
-    //     sh 'ls -la'
-    //   }
-    // }
+    stage('Checkout') {
+      steps {
+        checkout scm
+        sh 'ls -la'
+      }
+    }
 
     stage('Deps') {
       // --- Install dependencies ---
