@@ -82,7 +82,7 @@ spec:
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '20')) // keep last 20 builds
+    buildDiscarder(logRotator(numToKeepStr: '33')) // keep last 33 builds
     skipDefaultCheckout(true)
     timestamps() // add timestamps to console output
     ansiColor('xterm') // use ANSI colors in console output
