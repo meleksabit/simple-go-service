@@ -192,9 +192,9 @@ spec:
                   --local context=. \
                   --local dockerfile=. \
                   --output type=image,"name=${REGISTRY}/${IMAGE}:${TAG},push=true" \
-                  --export-cache type=inline \
-                  --import-cache type=registry,ref=${REGISTRY}/${IMAGE}:cache \
-                  --opt build-arg:BUILDKIT_INLINE_CRED_HELPER="docker"
+                  --opt "oci-mediatypes=true" \
+                  --opt "build-arg:BUILDKIT_INLINE_CRED_HELPER=${REGISTRY}" \
+                  --secret id=registry,user=${DOCKERHUB_USER},pass=${DOCKERHUB_PASS}
               """
             }
           }
