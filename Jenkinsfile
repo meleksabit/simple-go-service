@@ -60,14 +60,12 @@ spec:
         - name: trivy-cache
           mountPath: /root/.cache/trivy
 
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest
+    - name: buildkit
+      image: moby/buildkit:latest
       imagePullPolicy: IfNotPresent
-      command:
-        - /busybox/sh
-      args:
-        - -c
-        - sleep 9999999  # <-- keep container alive, Jenkins will run executor commands inside
+      securityContext:
+        privileged: true
+      args: ["--addr", "tcp://0.0.0.0:1234"]
       tty: true
 
     - name: helm
@@ -168,18 +166,19 @@ spec:
       }
     }
 
-    stage('Build & Push (Kaniko)') {
-      // --- Build Docker image and push to registry ---
+    stage('Build & Push (BuildKit)') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          container('kaniko') {
+          container('buildkit') {
             sh '''
-              echo "{\"auths\":{\"https://index.docker.io/v1/\":{\"username\":\"$DOCKER_USER\",\"password\":\"$DOCKER_PASS\"}}}" > /kaniko/.docker/config.json
-              /kaniko/executor \
-                --context=$WORKSPACE \
-                --dockerfile=$WORKSPACE/Dockerfile \
-                --destination=${REGISTRY}/${IMAGE}:${TAG} \
-                --cache=true --verbosity=info
+              echo "🚀 Starting BuildKit build..."
+              echo "$DOCKER_PASS" | buildctl login docker.io -u "$DOCKER_USER" --password-stdin
+              
+              buildctl build \
+                --frontend=dockerfile.v0 \
+                --local context=. \
+                --local dockerfile=. \
+                --output type=image,name=${REGISTRY}/${IMAGE}:${TAG},push=true
             '''
           }
         }
