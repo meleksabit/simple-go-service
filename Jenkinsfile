@@ -65,10 +65,6 @@ spec:
       imagePullPolicy: IfNotPresent
       command: ['sh', '-c', 'cat']
       tty: true
-      volumeMounts:
-        - name: docker-config
-          mountPath: /kaniko/.docker
-          readOnly: true
 
     - name: helm
       image: dtzar/helm-kubectl:latest
@@ -77,12 +73,6 @@ spec:
       tty: true
 
   volumes:
-    - name: docker-config
-      secret:
-        secretName: jenkins-secrets
-        items:
-          - key: .dockerconfigjson
-            path: config.json
     - name: trivy-cache
       emptyDir: {}
 """
