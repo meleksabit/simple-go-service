@@ -64,7 +64,7 @@ spec:
       imagePullPolicy: IfNotPresent
       securityContext:
         privileged: true
-      args: ["--addr", "tcp://0.0.0.0:1234"]
+      command: ["buildkitd", "--rootless"]
       tty: true
 
     - name: helm
