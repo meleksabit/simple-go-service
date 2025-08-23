@@ -33,7 +33,6 @@ spec:
       imagePullPolicy: IfNotPresent
       command: ['sh', '-c', 'cat']
       tty: true
-      # Only needed if you install extra Alpine packages at runtime (we don't here)
       securityContext:
         runAsUser: 0
       env:
