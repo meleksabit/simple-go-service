@@ -198,9 +198,11 @@ spec:
         expression { return env.REGISTRY && env.IMAGE && env.TAG }
       }
       steps {
+        container('trivy') {
         sh '''
           trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 ${REGISTRY}/${IMAGE}:${TAG}
         '''
+        }
       }
     }
 
