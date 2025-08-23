@@ -1,7 +1,7 @@
 replicaCount: 2
 
 image:
-  repository: docker.io/angel3/simple-go-service
+  repository: angel3/simple-go-service
   tag: "latest"
   pullPolicy: IfNotPresent
 
