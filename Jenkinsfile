@@ -29,7 +29,7 @@ spec:
     - name: regcred
   containers:
     - name: go
-      image: golang:1.22-alpine
+      image: golang:1.25-alpine
       imagePullPolicy: IfNotPresent
       command: ['sh', '-c', 'cat']
       tty: true
