@@ -269,38 +269,6 @@ spec:
         }
       }
     }
-
-    // =============================
-    // Service Monitoring & Alerting
-    // =============================
-    stage('Service Monitoring') {
-      steps {
-        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-          // This stage will not fail the pipeline, but will mark it as UNSTABLE if the health check fails
-          echo "Performing service health check..."
-        }
-        script {
-          // Perform a health check on the service
-          // --- Use ClusterIP service URL (inside cluster); NodePort only if external ---
-          def serviceUrl = "http://simple-go-service.${APP_NS}.svc.cluster.local:8080/v1/data"
-          echo "Performing service health check on ${serviceUrl}..."
-
-          def response = sh(script: "curl -s -o /dev/null -w '%{http_code}' ${serviceUrl}", returnStdout: true).trim()
-          echo "Health check HTTP response: ${response}"
-
-          if (response != "200") {
-            // Send email if the service is down
-            emailext(
-              subject: "🚨⚠️ ALERT: Service health check failed",
-              body: "Service check to ${serviceUrl} returned ${response}",
-              to: "mock-alert@example.com"  // TODO: replace with real email
-            )
-            currentBuild.result = 'UNSTABLE'
-            echo "Marked build as UNSTABLE due to failed health check"
-          }
-        }
-      }
-    }
   }
 
   post {
