@@ -252,7 +252,7 @@ spec:
     stage('Deploy (Helm rolling update)') {
       // --- Deploy the application using Helm ---
       when {
-        expression { return !(changeRequest() && env.BRANCH_NAME != 'main') }
+        expression { return !(changeRequest() && env.BRANCH_NAME != 'master') }
       }
       steps {
         container('helm') {
