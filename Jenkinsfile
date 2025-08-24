@@ -177,15 +177,16 @@ spec:
 
                 # Install buildctl if not present
                 BUILDKIT_VERSION=v0.23.2
+                BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
+
                 if ! command -v buildctl >/dev/null 2>&1; then
                   echo "Installing buildctl..."
                   curl -sSL https://github.com/moby/buildkit/releases/download/\${BUILDKIT_VERSION}/buildkit-\${BUILDKIT_VERSION}.linux-amd64.tar.gz \
                     | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
                 fi
 
-                export BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
 
-                echo "$DOCKERHUB_PASS" | buildctl --addr=$BUILDKIT_HOST build \
+                echo "$DOCKERHUB_PASS" | buildctl --addr=\${BUILDKIT_HOST} build \
                   --frontend=dockerfile.v0 \
                   --local context=. \
                   --local dockerfile=. \
