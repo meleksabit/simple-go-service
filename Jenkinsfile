@@ -102,7 +102,7 @@ spec:
       steps {
         container('go') {
           sh '''
-            apk add --no-cache git bash curl make jq buildkit
+            apk add --no-cache git bash curl make jq
             go version
             go mod tidy
           '''
@@ -172,7 +172,7 @@ spec:
           withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
             script {
               def tag = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
-              sh '''
+              sh """
                 echo "🚀 Starting BuildKit build with tag ${tag}..."
 
                 # Install buildctl if not present
@@ -191,7 +191,7 @@ spec:
                   --local dockerfile=. \
                   --opt filename=Dockerfile \
                   --output type=image,name=docker.io/${DOCKERHUB_USER}/simple-go-service:${tag},push=true
-              '''
+              """
             }
           }
         }
