@@ -181,10 +181,7 @@ spec:
                 curl -sSL https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz \
                   | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
               fi
-
-              # Docker auth config
-              echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'"$(echo -n "$DOCKERHUB_USER:$DOCKERHUB_PASS" | base64)"'"}}}' > config.json
-
+            
               # Build and push
               buildctl --addr=$BUILDKIT_HOST build \
                 --frontend=dockerfile.v0 \
@@ -192,7 +189,6 @@ spec:
                 --local dockerfile=. \
                 --opt filename=Dockerfile \
                 --output type=image,name=docker.io/$DOCKERHUB_USER/simple-go-service:$TAG,push=true \
-                --docker-config=$(pwd)/config.json
             '''
           }
         }
