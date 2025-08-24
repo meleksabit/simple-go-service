@@ -166,34 +166,30 @@ spec:
     }
 
     stage('Build & Push (BuildKit)') {
-      steps {
-        container('go') {
+      container('go') {
+        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
           script {
-            def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
-            withCredentials([usernamePassword(credentialsId: 'docker-hub',
-                                              usernameVariable: 'DOCKERHUB_USER',
-                                              passwordVariable: 'DOCKERHUB_PASS')]) {
-              sh """
-                echo "🚀 Starting BuildKit build with tag ${TAG}..."
+            def tag = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
+            sh '''
+              echo "🚀 Starting BuildKit build with tag ${tag}..."
 
-                # Make sure buildctl is installed
-                if ! command -v buildctl >/dev/null; then
-                  echo "Installing buildctl..."
-                  apk add --no-cache buildkit
-                fi
+              # Install buildctl if not present
+              if ! command -v buildctl >/dev/null 2>&1; then
+                echo "Installing buildctl..."
+                BUILDKIT_VERSION=v0.23.2
+                curl -sSL https://github.com/moby/buildkit/releases/download/${BUILDKIT_VERSION}/buildkit-${BUILDKIT_VERSION}.linux-amd64.tar.gz \
+                  | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
+              fi
 
-                export BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
+              export BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
 
-                echo "$DOCKERHUB_PASS" | buildctl \
-                  --addr=\$BUILDKIT_HOST \
-                  build \
-                  --frontend=dockerfile.v0 \
-                  --local context=. \
-                  --local dockerfile=. \
-                  --opt filename=Dockerfile \
-                  --output type=image,name=docker.io/angel3/simple-go-service:${TAG},push=true
-              """
-            }
+              echo "$DOCKERHUB_PASS" | buildctl --addr=$BUILDKIT_HOST build \
+                --frontend=dockerfile.v0 \
+                --local context=. \
+                --local dockerfile=. \
+                --opt filename=Dockerfile \
+                --output type=image,name=docker.io/${DOCKERHUB_USER}/simple-go-service:${tag},push=true
+            '''
           }
         }
       }
