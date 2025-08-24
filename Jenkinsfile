@@ -165,48 +165,45 @@ spec:
       }
     }
 
-    // stage('Build & Push (BuildKit)') {
-    //   // --- Build the Docker image using BuildKit and push to Docker Hub ---
-    //   steps {
-    //     container('go') {
-    //       withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-    //         sh '''
-    //           echo "🚀 Starting BuildKit build with tag $TAG..."
-
-    //           BUILDKIT_VERSION=v0.23.2
-    //           BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
-
-    //           if ! command -v buildctl >/dev/null 2>&1; then
-    //             echo "Installing buildctl..."
-    //             curl -sSL https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz \
-    //               | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
-    //           fi
-            
-    //           # Build and push
-    //           buildctl --addr=$BUILDKIT_HOST build \
-    //             --frontend=dockerfile.v0 \
-    //             --local context=. \
-    //             --local dockerfile=. \
-    //             --opt filename=Dockerfile \
-    //             --output type=image,name=docker.io/$DOCKERHUB_USER/simple-go-service:$TAG,push=true \
-    //         '''
-    //       }
-    //     }
-    //   }
-    // }
-
-    stage('Build & Push (Docker)') {
-      // --- Build the Docker image and push to Docker Hub ---
+    stage('Build & Push (BuildKit)') {
+      // --- Build and push the Docker image using BuildKit ---
       steps {
         container('go') {
-          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-            sh '''
-              echo "🚀 Building Docker image ${REGISTRY}/${IMAGE}:${TAG}..."
-              docker build -t ${REGISTRY}/${IMAGE}:${TAG} .
-              echo "Pushing image to ${REGISTRY}/${IMAGE}:${TAG}..."
-              docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASS
-              docker push ${REGISTRY}/${IMAGE}:${TAG}
-            '''
+          withCredentials([usernamePassword(
+            credentialsId: 'docker-hub',
+            usernameVariable: 'DOCKERHUB_USER',
+            passwordVariable: 'DOCKERHUB_PASS'
+          )]) {
+            withEnv([
+              'BUILDKIT_VERSION=v0.23.2',
+              'BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234',
+              "DOCKER_CONFIG=${env.WORKSPACE}/.docker"
+            ]) {
+              sh '''
+                set -euo pipefail
+
+                # Prepare docker config for BuildKit (no docker daemon required)
+                mkdir -p "$DOCKER_CONFIG"
+                AUTH_B64="$(printf "%s:%s" "$DOCKERHUB_USER" "$DOCKERHUB_PASS" | base64 | tr -d '\n')"
+                # Write the minimal config.json without echoing secrets to logs
+                printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "$AUTH_B64" > "$DOCKER_CONFIG/config.json"
+
+                # Install buildctl if missing
+                if ! command -v buildctl >/dev/null 2>&1; then
+                  echo "Installing buildctl $BUILDKIT_VERSION ..."
+                  curl -sSL "https://github.com/moby/buildkit/releases/download/${BUILDKIT_VERSION}/buildkit-${BUILDKIT_VERSION}.linux-amd64.tar.gz" \
+                    | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
+                fi
+
+                echo "🚀 Building & pushing ${REGISTRY}/${IMAGE}:${TAG} via BuildKit..."
+                buildctl --addr="$BUILDKIT_HOST" build \
+                  --frontend=dockerfile.v0 \
+                  --local context=. \
+                  --local dockerfile=. \
+                  --opt filename=Dockerfile \
+                  --output "type=image,name=${REGISTRY}/${IMAGE}:${TAG},push=true"
+              '''
+            }
           }
         }
       }
