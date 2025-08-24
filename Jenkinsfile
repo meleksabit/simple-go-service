@@ -179,22 +179,18 @@ spec:
         container('buildkit') {
           withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
             script {
-              def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
-              def REGISTRY = "docker.io"
-              def IMAGE = "angel3/simple-go-service"
-
+              def tag = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
               sh """
                 echo "🚀 Starting BuildKit build..."
-                echo "🔖 Tagging image as ${REGISTRY}/${IMAGE}:${TAG}"
+                echo "🔖 Tagging image as docker.io/${DOCKERHUB_USER}/simple-go-service:${tag}"
 
                 buildctl build \
                   --frontend=dockerfile.v0 \
                   --local context=. \
                   --local dockerfile=. \
-                  --output type=image,"name=${REGISTRY}/${IMAGE}:${TAG},push=true" \
-                  --opt "oci-mediatypes=true" \
-                  --opt "build-arg:BUILDKIT_INLINE_CRED_HELPER=${REGISTRY}" \
-                  --secret id=registry,user=${DOCKERHUB_USER},pass=${DOCKERHUB_PASS}
+                  --opt oci-mediatypes=true \
+                  --opt build-arg:BUILDKIT_INLINE_CRED_HELPER=docker.io \
+                  --output type=image,name=docker.io/${DOCKERHUB_USER}/simple-go-service:${tag},push=true
               """
             }
           }
