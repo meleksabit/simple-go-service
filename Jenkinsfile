@@ -295,7 +295,8 @@ spec:
               body: "Service check to ${serviceUrl} returned ${response}",
               to: "mock-alert@example.com"  // TODO: replace with real email
             )
-            error("Service health check failed!") // This will mark the stage as FAILED but not the entire pipeline
+            currentBuild.result = 'UNSTABLE'
+            echo "Marked build as UNSTABLE due to failed health check"
           }
         }
       }
