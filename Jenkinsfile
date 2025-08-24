@@ -179,7 +179,7 @@ spec:
                 BUILDKIT_VERSION=v0.23.2
                 if ! command -v buildctl >/dev/null 2>&1; then
                   echo "Installing buildctl..."
-                  curl -sSL https://github.com/moby/buildkit/releases/download/${BUILDKIT_VERSION}/buildkit-${BUILDKIT_VERSION}.linux-amd64.tar.gz \
+                  curl -sSL https://github.com/moby/buildkit/releases/download/\${BUILDKIT_VERSION}/buildkit-\${BUILDKIT_VERSION}.linux-amd64.tar.gz \
                     | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
                 fi
 
