@@ -211,14 +211,19 @@ spec:
 
     stage('Image Scan (Trivy)') {
       // --- Scan the Docker image for vulnerabilities ---
-      when {
-        expression { return env.REGISTRY && env.IMAGE && env.TAG }
-      }
       steps {
         container('trivy') {
-          sh '''
-            trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 ${REGISTRY}/${IMAGE}:${TAG}
-          '''
+          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+            sh '''
+              trivy image \
+                --no-progress \
+                --severity HIGH,CRITICAL \
+                --exit-code 0 \
+                --username $DOCKERHUB_USER \
+                --password $DOCKERHUB_PASS \
+                docker.io/angel3/simple-go-service:${BUILD_NUMBER}
+            '''
+          }
         }
       }
     }
