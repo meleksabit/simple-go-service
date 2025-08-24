@@ -174,23 +174,26 @@ spec:
     }
 
     stage('Build & Push (BuildKit)') {
-      // --- Build the Docker image using BuildKit and push to registry ---
+      agent { label 'buildkit' }
       steps {
         container('buildkit') {
           withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
             script {
+              def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
+              def IMAGE = "docker.io/${DOCKERHUB_USER}/simple-go-service:${TAG}"
+
               sh """
-                echo '{"auths":{"https://index.docker.io/v1/":{"username":"$DOCKERHUB_USER","password":"$DOCKERHUB_PASS"}}}' > /tmp/config.json
+                echo "🚀 Starting BuildKit build..."
+                echo "🔖 Image: ${IMAGE}"
 
                 buildctl build \
                   --frontend=dockerfile.v0 \
                   --local context=. \
                   --local dockerfile=. \
-                  --output type=image,name=docker.io/${DOCKERHUB_USER}/simple-go-service:${TAG},push=true \
-                  --import-cache type=registry,ref=docker.io/${DOCKERHUB_USER}/simple-go-service:cache \
-                  --export-cache type=registry,ref=docker.io/${DOCKERHUB_USER}/simple-go-service:cache,mode=max \
                   --opt build-arg:BUILDKIT_INLINE_CRED_HELPER=docker.io \
-                  --secret id=dockerconfig,src=/tmp/config.json
+                  --output type=image,name=${IMAGE},push=true
+                  --import-cache type=registry,ref=docker.io/${DOCKERHUB_USER}/simple-go-service:cache \
+                  --export-cache type=registry,ref=docker.io/${DOCKERHUB_USER}/simple-go-service:cache,mode=max
               """
             }
           }
