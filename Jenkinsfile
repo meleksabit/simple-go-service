@@ -165,30 +165,47 @@ spec:
       }
     }
 
-    stage('Build & Push (BuildKit)') {
-      // --- Build the Docker image using BuildKit and push to Docker Hub ---
+    // stage('Build & Push (BuildKit)') {
+    //   // --- Build the Docker image using BuildKit and push to Docker Hub ---
+    //   steps {
+    //     container('go') {
+    //       withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+    //         sh '''
+    //           echo "🚀 Starting BuildKit build with tag $TAG..."
+
+    //           BUILDKIT_VERSION=v0.23.2
+    //           BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
+
+    //           if ! command -v buildctl >/dev/null 2>&1; then
+    //             echo "Installing buildctl..."
+    //             curl -sSL https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz \
+    //               | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
+    //           fi
+            
+    //           # Build and push
+    //           buildctl --addr=$BUILDKIT_HOST build \
+    //             --frontend=dockerfile.v0 \
+    //             --local context=. \
+    //             --local dockerfile=. \
+    //             --opt filename=Dockerfile \
+    //             --output type=image,name=docker.io/$DOCKERHUB_USER/simple-go-service:$TAG,push=true \
+    //         '''
+    //       }
+    //     }
+    //   }
+    // }
+
+    stage('Build & Push (Docker)') {
+      // --- Build the Docker image and push to Docker Hub ---
       steps {
         container('go') {
           withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
             sh '''
-              echo "🚀 Starting BuildKit build with tag $TAG..."
-
-              BUILDKIT_VERSION=v0.23.2
-              BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
-
-              if ! command -v buildctl >/dev/null 2>&1; then
-                echo "Installing buildctl..."
-                curl -sSL https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz \
-                  | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
-              fi
-            
-              # Build and push
-              buildctl --addr=$BUILDKIT_HOST build \
-                --frontend=dockerfile.v0 \
-                --local context=. \
-                --local dockerfile=. \
-                --opt filename=Dockerfile \
-                --output type=image,name=docker.io/$DOCKERHUB_USER/simple-go-service:$TAG,push=true \
+              echo "🚀 Building Docker image ${REGISTRY}/${IMAGE}:${TAG}..."
+              docker build -t ${REGISTRY}/${IMAGE}:${TAG} .
+              echo "Pushing image to ${REGISTRY}/${IMAGE}:${TAG}..."
+              docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASS
+              docker push ${REGISTRY}/${IMAGE}:${TAG}
             '''
           }
         }
