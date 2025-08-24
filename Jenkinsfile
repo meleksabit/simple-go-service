@@ -176,9 +176,9 @@ spec:
                 echo "🚀 Starting BuildKit build with tag ${tag}..."
 
                 # Install buildctl if not present
+                BUILDKIT_VERSION=v0.23.2
                 if ! command -v buildctl >/dev/null 2>&1; then
                   echo "Installing buildctl..."
-                  BUILDKIT_VERSION=v0.23.2
                   curl -sSL https://github.com/moby/buildkit/releases/download/${BUILDKIT_VERSION}/buildkit-${BUILDKIT_VERSION}.linux-amd64.tar.gz \
                     | tar -xz -C /usr/local/bin --strip-components=1 bin/buildctl
                 fi
