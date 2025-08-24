@@ -59,14 +59,6 @@ spec:
         - name: trivy-cache
           mountPath: /root/.cache/trivy
 
-    - name: buildkit
-      image: moby/buildkit:latest
-      imagePullPolicy: IfNotPresent
-      securityContext:
-        privileged: true
-      command: ["buildkitd", "--rootless"]
-      tty: true
-
     - name: helm
       image: dtzar/helm-kubectl:latest
       imagePullPolicy: IfNotPresent
@@ -110,7 +102,7 @@ spec:
       steps {
         container('go') {
           sh '''
-            apk add --no-cache git bash curl make jq
+            apk add --no-cache git bash curl make jq buildkit
             go version
             go mod tidy
           '''
@@ -174,26 +166,32 @@ spec:
     }
 
     stage('Build & Push (BuildKit)') {
-      agent { label 'buildkit' }
       steps {
-        container('buildkit') {
-          withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-            script {
-              def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
-              def IMAGE = "docker.io/${DOCKERHUB_USER}/simple-go-service:${TAG}"
-
+        container('go') {
+          script {
+            def TAG = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : env.BUILD_NUMBER
+            withCredentials([usernamePassword(credentialsId: 'docker-hub',
+                                              usernameVariable: 'DOCKERHUB_USER',
+                                              passwordVariable: 'DOCKERHUB_PASS')]) {
               sh """
-                echo "🚀 Starting BuildKit build..."
-                echo "🔖 Image: ${IMAGE}"
+                echo "🚀 Starting BuildKit build with tag ${TAG}..."
 
-                buildctl build \
+                # Make sure buildctl is installed
+                if ! command -v buildctl >/dev/null; then
+                  echo "Installing buildctl..."
+                  apk add --no-cache buildkit
+                fi
+
+                export BUILDKIT_HOST=tcp://buildkitd.cicd.svc.cluster.local:1234
+
+                echo "$DOCKERHUB_PASS" | buildctl \
+                  --addr=\$BUILDKIT_HOST \
+                  build \
                   --frontend=dockerfile.v0 \
                   --local context=. \
                   --local dockerfile=. \
-                  --opt build-arg:BUILDKIT_INLINE_CRED_HELPER=docker.io \
-                  --output type=image,name=${IMAGE},push=true
-                  --import-cache type=registry,ref=docker.io/${DOCKERHUB_USER}/simple-go-service:cache \
-                  --export-cache type=registry,ref=docker.io/${DOCKERHUB_USER}/simple-go-service:cache,mode=max
+                  --opt filename=Dockerfile \
+                  --output type=image,name=docker.io/angel3/simple-go-service:${TAG},push=true
               """
             }
           }
