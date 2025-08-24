@@ -186,12 +186,15 @@ spec:
                 fi
 
 
-                echo "$DOCKERHUB_PASS" | buildctl --addr=\${BUILDKIT_HOST} build \
+                echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'"$(echo -n "$DOCKERHUB_USER:$DOCKERHUB_PASS" | base64)"'"}}}' > config.json
+
+                buildctl --addr=$BUILDKIT_HOST build \
                   --frontend=dockerfile.v0 \
                   --local context=. \
                   --local dockerfile=. \
                   --opt filename=Dockerfile \
-                  --output type=image,name=docker.io/${DOCKERHUB_USER}/simple-go-service:${tag},push=true
+                  --output type=image,name=docker.io/$DOCKERHUB_USER/simple-go-service:${tag},push=true \
+                  --docker-config=$(pwd)/config.json
               """
             }
           }
