@@ -1,0 +1,51 @@
+controller:
+  image:
+    repository: angel3/jenkins-jdk21-casc
+    tag: v2
+    pullPolicy: IfNotPresent
+
+  env:
+    - name: CASC_JENKINS_CONFIG
+      value: /usr/share/jenkins/ref/casc_configs
+
+  admin:
+    username: ""
+    password: ""
+
+  serviceType: NodePort
+  nodePort: 30080
+
+  JCasC:
+    enabled: true
+    defaultConfig: false
+    configMaps:
+      - jenkins-casc-config
+  sidecars:
+    configAutoReload:
+      enabled: false
+
+  # Inject all keys from the secret as environment variables
+  envFrom:
+    - secretRef:
+        name: jenkins-secrets
+
+  startupProbe:
+    httpGet: { path: /login, port: http }
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    failureThreshold: 60
+  livenessProbe:
+    httpGet: { path: /login, port: http }
+    initialDelaySeconds: 180
+    periodSeconds: 30
+    failureThreshold: 5
+  readinessProbe:
+    httpGet: { path: /login, port: http }
+    initialDelaySeconds: 180
+    periodSeconds: 15
+    failureThreshold: 3
+
+persistence:
+  enabled: true
+  storageClass: manual
+  size: 8Gi
