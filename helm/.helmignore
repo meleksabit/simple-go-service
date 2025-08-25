@@ -1,0 +1,15 @@
+# Common junk
+*.swp
+*.bak
+*.tmp
+*.orig
+.DS_Store
+.idea/
+.vscode/
+
+# Test files
+tests/
+*.test.yaml
+
+# Local config
+values.local.yaml

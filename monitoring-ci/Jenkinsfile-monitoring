@@ -1,0 +1,47 @@
+pipeline {
+  agent any
+
+  triggers {
+    // Run every 5 minutes
+    cron('H/5 * * * *')
+  }
+
+  environment {
+    APP_NS = 'sgsvc'
+    SERVICE_URL = "http://simple-go-service.${APP_NS}.svc.cluster.local:8080/v1/data"
+    ALERT_EMAIL = "alerts@example.com"
+  }
+
+// =============================
+// Service Monitoring & Alerting
+// =============================
+  stages {
+    stage('Service Health Check') {
+      steps {
+        script {
+          echo "Checking service at ${SERVICE_URL}..."
+          
+          def response = sh(
+            script: "curl -s -o /dev/null -w '%{http_code}' ${SERVICE_URL} || echo 000",
+            returnStdout: true
+          ).trim()
+          
+          echo "HTTP response code: ${response}"
+          
+          if (response != "200") {
+            echo "❌ Service is down or unhealthy!"
+            
+            // Send alert email
+            emailext(
+              subject: "🚨 Service Health Alert",
+              body: "Service check to ${SERVICE_URL} returned ${response}.",
+              to: "${ALERT_EMAIL}"
+            )
+          } else {
+            echo "✅ Service is healthy."
+          }
+        }
+      }
+    }
+  }
+}
