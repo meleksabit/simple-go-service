@@ -25,7 +25,7 @@ func main() {
 
 	logrus.Info("preparing httpServer...")
 	httpServer := &http.Server{
-		Addr:    fmt.Sprintf("localhost:8080"),
+		Addr:    fmt.Sprintf("0.0.0.0:8080"),
 		Handler: handler,
 	}
 	go func() {

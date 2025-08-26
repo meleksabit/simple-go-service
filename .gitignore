@@ -1,0 +1,125 @@
+# ---------
+# General
+# ---------
+
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+Thumbs.db
+
+# ----
+# Go
+# ----
+
+*.exe
+*.out
+*.test
+vendor/
+*.mod
+*.sum
+bin/
+*.cover
+coverage.out
+
+# --------
+# Docker
+# --------
+
+*.env
+.env.local
+.dockerignore
+docker-compose.override.yml
+tag.txt
+
+# -----------------------------------------
+# Ignore local Docker configuration files
+# -----------------------------------------
+
+.docker/
+
+# -------------
+# Kubernetes
+# -------------
+
+*.yml~
+.kube/
+*.crt
+*.key
+
+# --------------------
+# Helm / Kustomize
+# --------------------
+
+.kube/
+*.release.yaml
+*.tgz
+charts/
+tmpcharts/
+Chart.lock
+
+# ---------
+# Secrets
+# ---------
+
+secrets/
+*.secret
+*.key
+*.cert
+*.pfx
+*.pem
+*.json
+
+# --------
+# Jenkins
+# --------
+
+*.jenkinsfile.backup
+workspace/
+
+# ----------------
+# JetBrains IDEs
+# ----------------
+
+.idea/
+*.iml
+*.iws
+out/
+
+# ----------
+# VS Code
+# ----------
+
+.vscode/
+.history/
+
+# -------------------------
+# Operating System Files
+# -------------------------
+
+.DS_Store
+Thumbs.db
+
+# ------
+# Logs
+# ------
+
+logs/
+*.log
+*.log.*
+nohup.out
+
+# ----------
+# Artifacts
+# ----------
+
+*.artifact.zip
+*.whl
+
+# -------------
+# Trivy Cache
+# -------------
+
+.trivy-cache/
+.trivyignore
