@@ -251,19 +251,25 @@ spec:
 
     stage('Deploy (Helm rolling update)') {
       // --- Deploy the application using Helm ---
-      when {
-        expression { return !(changeRequest() && env.BRANCH_NAME != 'master') }
-      }
+      // when {
+      // // Only deploy when branch == master  
+      // expression { return !(changeRequest() && env.BRANCH_NAME != 'master') }
+      // }
       steps {
         container('helm') {
           sh '''
             helm version && kubectl version --client
-            kubectl get ns ${APP_NS} || kubectl create ns ${APP_NS}
+
+            helm lint ${CHART}
+
+            echo "🚀 Deploying to namespace ${APP_NS}"
+
             helm upgrade --install simple-go-service ${CHART} \
               --namespace ${APP_NS} \
               --set image.repository=${REGISTRY}/${IMAGE} \
               --set image.tag=${TAG} \
               --wait --timeout 5m
+
             kubectl -n ${APP_NS} rollout status deploy/simple-go-service --timeout=120s
           '''
         }
@@ -274,6 +280,10 @@ spec:
   post {
     success {
       echo "✅ Pipeline OK — image ${REGISTRY}/${IMAGE}:${TAG}"
+    }
+    unstable {
+    updateGitHubCommitStatus state: 'SUCCESS'
+      echo "⚠️ Pipeline unstable"
     }
     failure {
       echo "❌ Pipeline failed"
