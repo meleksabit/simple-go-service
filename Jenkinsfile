@@ -260,6 +260,8 @@ spec:
           sh '''
             helm version && kubectl version --client
 
+            helm lint ${CHART}
+
             echo "🚀 Deploying to namespace ${APP_NS}"
 
             helm upgrade --install simple-go-service ${CHART} \
