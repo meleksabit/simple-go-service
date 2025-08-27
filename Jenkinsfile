@@ -268,7 +268,7 @@ spec:
               --namespace ${APP_NS} \
               --set image.repository=${REGISTRY}/${IMAGE} \
               --set image.tag=${TAG} \
-              --wait --timeout 5m
+              --wait --timeout 10m
 
             kubectl -n ${APP_NS} rollout status deploy/simple-go-service --timeout=120s
           '''
