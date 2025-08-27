@@ -5,7 +5,11 @@ metadata:
   namespace: sgsvc
 rules:
   - apiGroups: ["apps"]
-    resources: ["deployments", "replicasets"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
 
   - apiGroups: [""]
